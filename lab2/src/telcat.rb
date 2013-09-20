@@ -5,10 +5,15 @@ unless ARGV.first
   exit(-1)
 end
 
-server = LocalServer.new(ARGV.first)
-
 begin
-  server.accept
+  server = LocalServer.new(ARGV.first)
+  client = server.accept
+
+  while data = client.gets
+    client.write(data)
+  end
+
 ensure
-  server.close unless server.closed?
+  client.close if client
+  server.close
 end
