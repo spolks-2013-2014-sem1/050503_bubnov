@@ -1,4 +1,4 @@
-require_relative 'local_server'
+require '../../spolks_lib/local_server'
 
 unless ARGV.first
   puts('Usage: telcat <port>')
@@ -15,5 +15,5 @@ begin
 
 ensure
   client.close if client
-  server.close
+  server.close if server
 end
