@@ -6,7 +6,7 @@ class LocalServer
   def initialize(port)
     @socket = Socket.new(AF_INET, SOCK_STREAM, 0)
 
-    sockaddr = Socket.sockaddr_in(port, '127.0.0.1')
+    sockaddr = Socket.sockaddr_in(port, '')
     @socket.bind(sockaddr)
     @socket.listen(1)
   end
