@@ -15,10 +15,10 @@ Getting Started
 
 Start by using netdup to listen on a specific port, with the file which is to be transferred:
 
-    <tt>$ ruby netdup.rb -l 1234 < filename.in</tt>
+    $ ruby netdup.rb -l 1234 < filename.in
 
 Using a second machine, connect to the listening netdup process, with output captured into a file:
 
-    <tt>$ ruby netdup.rb 127.0.0.1 1234 > filename.out</tt>
+    $ ruby netdup.rb 127.0.0.1 1234 > filename.out
 
 After the file has been transferred, the connection will close automatically.

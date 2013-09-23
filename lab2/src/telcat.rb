@@ -1,12 +1,22 @@
-require '../../spolks_lib/local_server'
+require '../../spolks_lib/net'
+require '../../spolks_lib/secure'
 
 unless ARGV.first
   puts('Usage: telcat <port>')
-  exit(-1)
+  exit
+end
+
+server, client = nil
+
+handle = Secure::Handle.new
+handle.assign 'TERM', 'INT' do
+  puts ''
+  server.shutdown(Net::TCPSocket::SHUT_RDWR)
+  exit
 end
 
 begin
-  server = LocalServer.new(ARGV.first)
+  server = Net::LocalServer.new(ARGV.first)
   client = server.accept
 
   while data = client.gets

@@ -1,71 +1,60 @@
-require '../../spolks_lib/local_server'
-require '../../spolks_lib/argument_parser'
+require '../../spolks_lib/utils'
+require '../../spolks_lib/net'
+require '../../spolks_lib/secure'
 require 'io/console'
 
-class InfoDump
-  def initialize(bound, step = 1)
-    @yielder = 0
-    @bound = bound
-    @step = step
-  end
+MSG = 13.chr
 
-  def dump?
-    @yielder += @step
+server, client = nil
 
-    if @yielder == @bound
-      @yielder = 0
-      true
-    else
-      false
-    end
-  end
-end
-
-def safe
-  yield
-rescue Errno::EINVAL
-end
-
-CHUNK_SIZE = 65535
-OOB_MSG = 'o'
-
-options = ArgumentParser.new
+options = Utils::ArgumentParser.new
 options.parse!
+
+handle = Secure::Handle.new
+handle.assign 'TERM', 'INT' do
+  server.shutdown(Net::TCPSocket::SHUT_RDWR) if server
+  client.shutdown(Net::TCPSocket::SHUT_RDWR) if client
+  exit
+end
 
 if options[:listen] and options[:port]
   begin
-    server = LocalServer.new(options[:port])
-    client = server.accept
-    yielder = InfoDump.new(3)
+    server = Net::LocalServer.new(options[:port])
+    income = server.accept
+    ticker = Utils::Pendulum.new(0)
     send = 0
 
-    while data = STDIN.read(CHUNK_SIZE)
-      client.send(OOB_MSG, Socket::MSG_OOB) if yielder.dump?
-      client.send(data, 0)
+    while data = STDIN.read(Net::CHUNK_SIZE)
+      income.send(MSG, Net::TCPSocket::MSG_OOB) and IO.console.puts('true') if ticker.dump?
+      income.send(data, 0)
 
       IO.console.puts(send += data.length) if options[:verbose]
     end
 
   ensure
     server.close if server
-    client.close if client
+    income.close if income
   end
 
 elsif not options[:listen] and options[:ip] and options[:port]
   begin
-    client = Socket.new(Socket::AF_INET, Socket::SOCK_STREAM, 0)
-    sockaddr = Socket.sockaddr_in(options[:port], options[:ip])
+    client = Net::TCPSocket.new
+    sockaddr = Net::TCPSocket.sockaddr_in(options[:port], options[:ip])
     client.connect(sockaddr)
 
     recv = 0
 
-    loop do
-      safe do
-        oob = client.recv(1, Socket::MSG_OOB)
-        IO.console.puts(recv) if not oob.empty? and options[:verbose]
+    Thread.new do
+      loop do
+        Secure.safe do
+          client.recv(MSG.length, Net::TCPSocket::MSG_OOB)
+          IO.console.puts(recv)
+        end
       end
+    end
 
-      data = client.recv(CHUNK_SIZE)
+    loop do
+      data = client.recv(Net::CHUNK_SIZE)
       recv += data.length
 
       break if data.empty?

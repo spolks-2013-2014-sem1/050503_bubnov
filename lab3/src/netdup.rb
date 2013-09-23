@@ -1,34 +1,42 @@
-require '../../spolks_lib/local_server'
-require '../../spolks_lib/argument_parser'
+require '../../spolks_lib/utils'
+require '../../spolks_lib/net'
+require '../../spolks_lib/secure'
 require 'io/console'
 
-CHUNK_SIZE = 65535
+client, server = nil
 
-options = ArgumentParser.new
+options = Utils::ArgumentParser.new
 options.parse!
+
+handle = Secure::Handle.new
+handle.assign 'TERM', 'INT' do
+  server.shutdown(Net::TCPSocket::SHUT_RDWR) if server
+  client.shutdown(Net::TCPSocket::SHUT_RDWR) if client
+  exit
+end
 
 if options[:listen] and options[:port]
   begin
-    server = LocalServer.new(options[:port])
-    client = server.accept
+    server = Net::LocalServer.new(options[:port])
+    income = server.accept
 
-    while data = STDIN.read(CHUNK_SIZE)
-      client.send(data, 0)
+    while data = STDIN.read(Net::CHUNK_SIZE)
+      income.send(data, 0)
     end
 
   ensure
     server.close if server
-    client.close if client
+    income.close if income
   end
 
 elsif not options[:listen] and options[:ip] and options[:port]
   begin
-    client = Socket.new(Socket::AF_INET, Socket::SOCK_STREAM, 0)
-    sockaddr = Socket.sockaddr_in(options[:port], options[:ip])
+    client = Net::TCPSocket.new
+    sockaddr = Net::TCPSocket.sockaddr_in(options[:port], options[:ip])
     client.connect(sockaddr)
 
     loop do
-      data = client.recv(CHUNK_SIZE)
+      data = client.recv(Net::CHUNK_SIZE)
 
       break if data.empty?
       STDOUT.write(data)
