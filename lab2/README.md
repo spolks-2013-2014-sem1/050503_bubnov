@@ -15,4 +15,4 @@ Getting Started
 
 To establish tcp-echo server move to the source directory and execute:
 
-    $ ruby telcat.rb <port>
+    $ ruby main.rb <port>

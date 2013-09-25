@@ -13,12 +13,12 @@ Ruby version >= 1.9.3
 Getting Started
 ---------------
 
-Start by using netdup to listen on a specific port, with the file which is to be transferred:
+Start by using main to listen on a specific port, with the file which is to be transferred:
 
-    $ ruby netdup.rb -l 1234 < filename.in
+    $ ruby main.rb -l 1234 < filename.in
 
-Using a second machine, connect to the listening netdup process, with output captured into a file:
+Using a second machine, connect to the listening main process, with output captured into a file:
 
-    $ ruby netdup.rb 127.0.0.1 1234 > filename.out
+    $ ruby main.rb 127.0.0.1 1234 > filename.out
 
 After the file has been transferred, the connection will close automatically.

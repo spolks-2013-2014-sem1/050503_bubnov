@@ -1,9 +1,10 @@
 require '../../spolks_lib/utils'
 require '../../spolks_lib/net'
 require '../../spolks_lib/secure'
+require_relative 'sockatmark'
 require 'io/console'
 
-MSG = 13.chr
+MSG = '!'.chr
 
 server, client = nil
 
@@ -21,11 +22,11 @@ if options[:listen] and options[:port]
   begin
     server = Net::LocalServer.new(options[:port])
     income = server.accept
-    ticker = Utils::Pendulum.new(0)
+    ticker = Utils::Pendulum.new(1)
     send = 0
 
     while data = STDIN.read(Net::CHUNK_SIZE)
-      income.send(MSG, Net::TCPSocket::MSG_OOB) and IO.console.puts('true') if ticker.dump?
+      income.send(MSG, Net::TCPSocket::MSG_OOB) if ticker.dump?
       income.send(data, 0)
 
       IO.console.puts(send += data.length) if options[:verbose]
@@ -43,22 +44,29 @@ elsif not options[:listen] and options[:ip] and options[:port]
     client.connect(sockaddr)
 
     recv = 0
-
-    Thread.new do
-      loop do
-        Secure.safe do
-          client.recv(MSG.length, Net::TCPSocket::MSG_OOB)
-          IO.console.puts(recv)
-        end
-      end
-    end
+    read_oob = true
+    data = ''
 
     loop do
-      data = client.recv(Net::CHUNK_SIZE)
-      recv += data.length
+      urgent_arr = read_oob ? [client] : []
+      has_regular, _, has_urgent = IO.select([client], nil, urgent_arr, nil)
 
-      break if data.empty?
-      STDOUT.write(data)
+
+      if s = has_urgent.shift
+        oob = s.recv(100, Net::TCPSocket::MSG_OOB)
+
+        IO.console.puts(oob) if not oob.empty? and options[:verbose]
+        read_oob = false
+      end
+
+      if s = has_regular.shift
+        recv += data.length
+
+        read_oob = true
+        break if data.empty?
+
+        STDOUT.write(data)
+      end
     end
 
   ensure

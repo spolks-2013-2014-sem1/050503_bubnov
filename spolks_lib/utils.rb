@@ -6,7 +6,7 @@ module Utils
       @options = {}
 
       @optparse = OptionParser.new do |opts|
-        opts.banner = 'Usage: netdup.rb [options] [ip] <port> < | > file'
+        opts.banner = 'Usage: main.rb [options] [ip] <port> < | > file'
 
         @options[:listen] = false
         opts.on('-l', 'Listen port') do
