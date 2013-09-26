@@ -19,8 +19,11 @@ begin
   server = Net::LocalServer.new(ARGV.first)
   client = server.accept
 
-  while data = client.gets
-    client.write(data)
+  loop do
+    data = client.recv(Net::CHUNK_SIZE)
+
+    break if data.empty?
+    client.send(data, 0)
   end
 
 ensure

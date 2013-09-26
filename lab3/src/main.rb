@@ -20,7 +20,9 @@ if options[:listen] and options[:port]
     server = Net::LocalServer.new(options[:port])
     income = server.accept
 
-    while data = STDIN.read(Net::CHUNK_SIZE)
+    loop do
+      data = STDIN.read(Net::CHUNK_SIZE)
+      break if data.empty?
       income.send(data, 0)
     end
 
@@ -37,7 +39,6 @@ elsif not options[:listen] and options[:ip] and options[:port]
 
     loop do
       data = client.recv(Net::CHUNK_SIZE)
-
       break if data.empty?
       STDOUT.write(data)
     end

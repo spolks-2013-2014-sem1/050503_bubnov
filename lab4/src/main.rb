@@ -21,14 +21,18 @@ if options[:listen] and options[:port]
   begin
     server = Net::LocalServer.new(options[:port])
     income = server.accept
-    ticker = Utils::Pendulum.new(15)
+    ticker = Utils::Pendulum.new(11)
     send = 0
 
-    while data = STDIN.read(Net::CHUNK_SIZE)
-      income.send(data, 0)
-      income.send(MSG, Net::TCPSocket::MSG_OOB) if ticker.dump?
+    loop do
+      data = STDIN.read(Net::CHUNK_SIZE)
 
-      IO.console.puts(send += data.length) if options[:verbose]
+      break if not data
+      income.send(data, 0)
+      income.send(MSG, Net::TCPSocket::MSG_OOB) if ticker.dump? and options[:verbose]
+
+      send += data.length
+      IO.console.puts(send) if options[:verbose]
     end
 
   ensure
@@ -57,14 +61,14 @@ elsif not options[:listen] and options[:ip] and options[:port]
 
       if s = has_regular.shift
         data = s.recv(Net::CHUNK_SIZE)
-        recv += data.length
-        read_oob = true
 
         break if data.empty?
+        recv += data.length
+        read_oob = true
         STDOUT.write(data)
       end
-    end
 
+    end
   ensure
     client.close if client
   end
