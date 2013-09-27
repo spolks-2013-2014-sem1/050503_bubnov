@@ -17,13 +17,14 @@ end
 
 if options[:listen] and options[:port]
   begin
-    server = Net::LocalServer.new(options[:port])
-    income = server.accept
+    server = Net::TCPSocket.new
+    sockaddr = Net::TCPSocket.sockaddr_in(options[:port], '')
+    income, = server.tie(sockaddr)
 
     loop do
-      data = STDIN.read(Net::CHUNK_SIZE)
+      data = income.recv(Net::CHUNK_SIZE)
       break if data.empty?
-      income.send(data, 0)
+      STDOUT.write(data)
     end
 
   ensure
@@ -38,9 +39,9 @@ elsif not options[:listen] and options[:ip] and options[:port]
     client.connect(sockaddr)
 
     loop do
-      data = client.recv(Net::CHUNK_SIZE)
-      break if data.empty?
-      STDOUT.write(data)
+      data = STDIN.read(Net::CHUNK_SIZE)
+      break if not data
+      client.send(data, 0)
     end
 
   ensure
@@ -48,5 +49,4 @@ elsif not options[:listen] and options[:ip] and options[:port]
   end
 else
   puts options.help
-  exit
 end

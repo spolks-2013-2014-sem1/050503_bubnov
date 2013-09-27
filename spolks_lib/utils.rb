@@ -13,6 +13,11 @@ module Utils
           @options[:listen] = true
         end
 
+        @options[:type] = :tcp
+        opts.on('-u', 'Use UDP') do
+          @options[:type] = :udp
+        end
+
         @options[:verbose] = false
         opts.on('-v', 'Be verbose') do
           @options[:verbose] = true
