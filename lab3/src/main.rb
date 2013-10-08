@@ -18,13 +18,19 @@ end
 if options[:listen] and options[:port]
   begin
     server = Net::TCPSocket.new
-    sockaddr = Net::TCPSocket.sockaddr_in(options[:port], '')
+    sockaddr = Net::TCPSocket.sockaddr_in(options[:port], Net::INADDR_ANY)
     income, = server.tie(sockaddr)
 
     loop do
-      data = income.recv(Net::CHUNK_SIZE)
-      break if data.empty?
-      STDOUT.write(data)
+      has_regular, = IO.select([income], nil, nil, Net::TIMEOUT)
+
+      break unless has_regular
+
+      if s = has_regular.shift
+        data = s.recv(Net::CHUNK_SIZE)
+        break if data.empty?
+        STDOUT.write(data)
+      end
     end
 
   ensure

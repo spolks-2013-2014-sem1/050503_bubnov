@@ -2,6 +2,8 @@ require 'socket'
 
 module Net
   CHUNK_SIZE = 16380
+  TIMEOUT = 3
+  INADDR_ANY = ''
 
   module AbstractInterface
     class NotImplementedError < NoMethodError

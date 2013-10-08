@@ -20,7 +20,7 @@ end
 if options[:listen] and options[:port]
   begin
     server = Net::AbstractSocket.factory(options[:type])
-    sockaddr = Net::AbstractSocket.sockaddr_in(options[:port], '')
+    sockaddr = Net::AbstractSocket.sockaddr_in(options[:port], Net::INADDR_ANY)
     income, = server.tie(sockaddr)
 
     recv = 0
@@ -28,7 +28,7 @@ if options[:listen] and options[:port]
 
     loop do
       urgent_arr = read_oob ? [income] : []
-      has_regular, _, has_urgent = IO.select([income], nil, urgent_arr, nil)
+      has_regular, _, has_urgent = IO.select([income], nil, urgent_arr, Net::TIMEOUT)
 
       if s = has_urgent.shift
         s.recv(1, Net::TCPSocket::MSG_OOB)
