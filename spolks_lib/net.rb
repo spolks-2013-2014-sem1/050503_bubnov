@@ -2,7 +2,7 @@ require 'socket'
 
 module Net
   CHUNK_SIZE = 16380
-  TIMEOUT = 3
+  TIMEOUT = 10
   INADDR_ANY = ''
 
   module AbstractInterface

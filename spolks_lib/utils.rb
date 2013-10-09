@@ -35,6 +35,11 @@ module Utils
           puts opts
           exit
         end
+
+        @options[:filepath] = nil
+        opts.on(/.+/) do |filepath|
+          @options[:filepath] = filepath
+        end
       end
     end
 

@@ -3,7 +3,7 @@ require '../../spolks_lib/net'
 require '../../spolks_lib/secure'
 require 'io/console'
 
-client, server = nil
+client, server, income = nil
 
 options = Utils::ArgumentParser.new
 options.parse!
@@ -15,39 +15,53 @@ handle.assign 'TERM', 'INT' do
   exit
 end
 
-if options[:listen] and options[:port]
+if options[:listen] && options[:port] && options[:filepath]
   begin
-    server = Net::TCPSocket.new
-    sockaddr = Net::TCPSocket.sockaddr_in(options[:port], Net::INADDR_ANY)
-    income, = server.tie(sockaddr)
+    File.open(options[:filepath], File::CREAT|File::TRUNC|File::WRONLY) do |file|
+      server = Net::TCPSocket.new
+      sockaddr = Net::TCPSocket.sockaddr_in(options[:port], Net::INADDR_ANY)
+      income, = server.tie(sockaddr)
 
-    loop do
-      has_regular, = IO.select([income], nil, nil, Net::TIMEOUT)
+      loop do
+        has_regular, = IO.select([income], nil, nil, Net::TIMEOUT)
 
-      break unless has_regular
+        break unless has_regular
 
-      if s = has_regular.shift
-        data = s.recv(Net::CHUNK_SIZE)
-        break if data.empty?
-        STDOUT.write(data)
+        if s = has_regular.shift
+          data = s.recv(Net::CHUNK_SIZE)
+          break if data.empty?
+
+          file.write(data)
+        end
       end
     end
-
   ensure
     server.close if server
     income.close if income
   end
 
-elsif not options[:listen] and options[:ip] and options[:port]
+elsif not options[:listen] && options[:ip] &&
+    options[:port] && options[:filepath]
   begin
-    client = Net::TCPSocket.new
-    sockaddr = Net::TCPSocket.sockaddr_in(options[:port], options[:ip])
-    client.connect(sockaddr)
 
-    loop do
-      data = STDIN.read(Net::CHUNK_SIZE)
-      break if not data
-      client.send(data, 0)
+    File.open(options[:filepath], File::RDONLY) do |file|
+      client = Net::TCPSocket.new
+      sockaddr = Net::TCPSocket.sockaddr_in(options[:port], options[:ip])
+      client.connect(sockaddr)
+
+      sent = true
+
+      loop do
+        _, has_write, = IO.select(nil, [client], nil, Net::TIMEOUT)
+
+        break unless has_write
+        data, sent = file.read(Net::CHUNK_SIZE), false if sent
+
+        if s = has_write.shift
+          break unless data
+          sent = true unless s.send(data, 0) == 0
+        end
+      end
     end
 
   ensure
