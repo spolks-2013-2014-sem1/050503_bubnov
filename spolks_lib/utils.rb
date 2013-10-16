@@ -1,12 +1,20 @@
 require 'optparse'
 
 module Utils
+  class Handle
+    def assign(*int, &block)
+      int.each do |i|
+        Signal.trap(i, block)
+      end
+    end
+  end
+
   class ArgumentParser
     def initialize
       @options = {}
 
       @optparse = OptionParser.new do |opts|
-        opts.banner = 'Usage: main.rb [options] [ip] <port> < | > file'
+        opts.banner = 'Usage: main.rb [options] [ip] [filepath]'
 
         @options[:listen] = false
         opts.on('-l', 'Listen port') do
@@ -55,6 +63,21 @@ module Utils
       @options[label]
     end
 
+    def client?
+      !@options[:listen] && @options[:ip] && @options[:port]
+    end
+
+    def server?
+      @options[:listen] && @options[:port]
+    end
+
+    def file_client?
+      client? && @options[:filepath]
+    end
+
+    def file_server?
+      server? && @options[:filepath]
+    end
   end
 
   class Pendulum

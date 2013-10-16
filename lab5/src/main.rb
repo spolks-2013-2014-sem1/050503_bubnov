@@ -1,6 +1,5 @@
 require '../../spolks_lib/utils'
 require '../../spolks_lib/net'
-require '../../spolks_lib/secure'
 require 'io/console'
 
 MSG = '!'.chr
@@ -10,14 +9,14 @@ server, client = nil
 options = Utils::ArgumentParser.new
 options.parse!
 
-handle = Secure::Handle.new
+handle = Utils::Handle.new
 handle.assign 'TERM', 'INT' do
   server.close if server
   client.close if client
   exit
 end
 
-if options[:listen] and options[:port]
+if options.file_server?
   begin
     server = Net::AbstractSocket.factory(options[:type])
     sockaddr = Net::AbstractSocket.sockaddr_in(options[:port], Net::INADDR_ANY)
@@ -50,7 +49,7 @@ if options[:listen] and options[:port]
     income.close if income
   end
 
-elsif not options[:listen] and options[:ip] and options[:port]
+elsif options.file_client?
   begin
     client = Net::AbstractSocket.factory(options[:type])
     sockaddr = Net::AbstractSocket.sockaddr_in(options[:port], options[:ip])

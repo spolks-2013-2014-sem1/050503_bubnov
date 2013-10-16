@@ -15,4 +15,4 @@ Getting Started
 
 To establish tcp-echo server move to the source directory and execute:
 
-    $ ruby main.rb -l <port>
+    $ ruby main.rb -l 1234
