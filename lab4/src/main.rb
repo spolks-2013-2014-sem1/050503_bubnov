@@ -64,18 +64,24 @@ elsif options.file_client?
       sockaddr = Net::TCPSocket.sockaddr_in(options[:port], options[:ip])
       client.connect(sockaddr)
 
-      ticker = Utils::Pendulum.new(15)
-      send = 0
+      ticker = Utils::Pendulum.new(Net::PERIOD)
+      sent = true
+      transferred = 0
 
       loop do
-        data = file.read(Net::CHUNK_SIZE)
+        _, has_write, = IO.select(nil, [client], nil, Net::TIMEOUT)
 
-        break if not data
-        client.send(data, 0)
-        client.send(MSG, Net::TCPSocket::MSG_OOB) if ticker.dump? and options[:verbose]
+        break unless has_write
+        data, sent = file.read(Net::CHUNK_SIZE), false if sent
 
-        send += data.length
-        IO.console.puts(send) if options[:verbose]
+        if s = has_write.shift
+          break if not data
+          sent = true unless s.send(data, 0) == 0
+          s.send(MSG, Net::TCPSocket::MSG_OOB) if ticker.dump? and options[:verbose]
+
+          transferred += data.length if sent
+          IO.console.puts(transferred) if options[:verbose]
+        end
       end
     end
   ensure

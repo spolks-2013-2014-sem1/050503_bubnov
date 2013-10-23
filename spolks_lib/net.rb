@@ -2,6 +2,7 @@ require 'socket'
 
 module Net
   CHUNK_SIZE = 16380
+  PERIOD = 64
   TIMEOUT = 10
   INADDR_ANY = ''
 
