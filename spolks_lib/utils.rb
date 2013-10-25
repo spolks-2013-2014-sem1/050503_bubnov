@@ -1,14 +1,6 @@
 require 'optparse'
 
 module Utils
-  class Handle
-    def assign(*int, &block)
-      int.each do |i|
-        Signal.trap(i, block)
-      end
-    end
-  end
-
   class ArgumentParser
     def initialize
       @options = {}
@@ -21,9 +13,11 @@ module Utils
           @options[:listen] = true
         end
 
-        @options[:type] = :tcp
+        @options[:tcp] = true
+        @options[:udp] = false
         opts.on('-u', 'Use UDP') do
-          @options[:type] = :udp
+          @options[:type] = false
+          @options[:udp] = true
         end
 
         @options[:verbose] = false
@@ -80,7 +74,7 @@ module Utils
     end
   end
 
-  class Pendulum
+  class Ticker
     def initialize(bound, step = 1)
       @ticker = 0
       @bound = bound
