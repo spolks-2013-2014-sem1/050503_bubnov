@@ -1,8 +1,9 @@
-require '../../spolks_lib/network'
+require_relative '../../spolks_lib/network'
 
-def client_handle(options)
-  file = File.open(options[:filepath], File::RDONLY)
-  client = Network::StreamSocket.new(options[:ip], options[:port])
+def client_handle(opts)
+  file = File.open(opts[:file], File::RDONLY)
+  client = Network::StreamSocket.new
+  client.connect(Socket.sockaddr_in(opts[:port], opts[:host]))
   sent = true
 
   loop do
@@ -11,8 +12,8 @@ def client_handle(options)
     break unless ws
     data, sent = file.read(Network::CHUNK_SIZE), false if sent
 
-    if s = ws.shift
-      break unless data
+    ws.each do |s|
+      return unless data
       sent = true unless s.send(data, 0) == 0
     end
   end

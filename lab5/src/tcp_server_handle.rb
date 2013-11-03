@@ -1,8 +1,10 @@
-require '../../spolks_lib/network'
+require_relative '../../spolks_lib/network'
 
-def tcp_server_handle(options)
-  file = File.open(options[:filepath], File::CREAT|File::TRUNC|File::WRONLY)
-  server = Network::StreamServer.new(Network::INADDR_ANY, options[:port])
+def tcp_server_handle(opts)
+  file = File.open(opts[:file], File::CREAT|File::TRUNC|File::WRONLY)
+  server = Network::AbstractSocket.open(:tcp)
+  server.bind(Socket.sockaddr_in(opts[:port], Network::INADDR_ANY))
+  server.listen(3)
 
   client, = server.accept
   recv = 0
@@ -12,16 +14,16 @@ def tcp_server_handle(options)
     urgent_arr = read_oob ? [client] : []
     rs, _, us = IO.select([client], nil, urgent_arr, Network::TIMEOUT)
 
-    if s = us.shift
+    us.each do |s|
       s.recv(1, Network::StreamSocket::MSG_OOB)
-      puts recv if options[:verbose]
+      puts recv if opts.verbose?
       read_oob = false
     end
 
-    if s = rs.shift
+    rs.each do |s|
       data = s.recv(Network::CHUNK_SIZE)
 
-      break if data.empty?
+      return if data.empty?
       recv += data.length
       read_oob = true
 

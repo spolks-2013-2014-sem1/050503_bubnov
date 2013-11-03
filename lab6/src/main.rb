@@ -1,7 +1,6 @@
 require 'slop'
-require_relative 'client_handle'
-require_relative 'tcp_server_handle'
-require_relative 'udp_server_handle'
+require_relative 'tcp_handle'
+require_relative 'udp_handle'
 
 opts = Slop.parse(help: true) do
   on :g, :host=, 'Hostname'
@@ -18,14 +17,18 @@ end
   end
 end
 
-if opts.listen? && opts.file?
+if opts.listen?
   if opts.udp?
     udp_server_handle(opts)
   else
     tcp_server_handle(opts)
   end
 elsif !opts.listen? && opts.file?
-  client_handle(opts)
+  if opts.udp?
+    udp_client_handle(opts)
+  else
+    tcp_client_handle(opts)
+  end
 else
   puts opts
 end

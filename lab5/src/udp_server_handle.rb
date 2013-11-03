@@ -1,16 +1,17 @@
-require '../../spolks_lib/network'
+require_relative '../../spolks_lib/network'
 
-def udp_server_handle(options)
-  file = File.open(options[:filepath], File::CREAT|File::TRUNC|File::WRONLY)
-  server = Network::DatagramSocket.new(Network::INADDR_ANY, options[:port])
+def udp_server_handle(opts)
+  file = File.open(opts[:file], File::CREAT|File::TRUNC|File::WRONLY)
+  server = Network::AbstractSocket.open(:udp)
+  server.bind(Socket.sockaddr_in(opts[:port], Network::INADDR_ANY))
 
   loop do
     rs, _ = IO.select([server], nil, nil, Network::TIMEOUT)
     break unless rs
 
-    if s = rs.shift
+    rs.each do |s|
       data = s.recv(Network::CHUNK_SIZE)
-      break if data.empty?
+      return if data.empty?
 
       file.write(data)
     end

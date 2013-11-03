@@ -1,8 +1,9 @@
-require '../../spolks_lib/utils'
+require 'slop'
 require_relative 'server_handle'
 
-options = Utils::ArgumentParser.new
-options.parse!
+opts = Slop.parse(help: true) do
+  on :p, :port=, 'Port'
+end
 
 %w(TERM INT).each do |signal|
   Signal.trap signal do
@@ -10,8 +11,8 @@ options.parse!
   end
 end
 
-if options.server?
-  server_handle(options)
+if opts.port?
+  server_handle(opts)
 else
-  puts options.help
+  puts opts.help
 end

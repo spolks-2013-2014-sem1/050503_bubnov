@@ -1,8 +1,10 @@
-require '../../spolks_lib/network'
+require_relative '../../spolks_lib/network'
 
-def server_handle(options)
-  file = File.open(options[:filepath], File::CREAT|File::TRUNC|File::WRONLY)
-  server = Network::StreamServer.new(Network::INADDR_ANY, options[:port])
+def server_handle(opts)
+  file = File.open(opts[:file], File::CREAT|File::TRUNC|File::WRONLY)
+  server = Network::StreamSocket.new
+  server.bind(Socket.sockaddr_in(opts[:port], Network::INADDR_ANY))
+  server.listen(3)
 
   client, = server.accept
 
@@ -10,9 +12,9 @@ def server_handle(options)
     rs, _ = IO.select([client], nil, nil, Network::TIMEOUT)
     break unless rs
 
-    if s = rs.shift
+    rs.each do |s|
       data = s.recv(Network::CHUNK_SIZE)
-      break if data.empty?
+      return if data.empty?
 
       file.write(data)
     end

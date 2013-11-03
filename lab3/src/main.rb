@@ -1,9 +1,13 @@
-require '../../spolks_lib/utils'
+require 'slop'
 require_relative 'server_handle'
 require_relative 'client_handle'
 
-options = Utils::ArgumentParser.new
-options.parse!
+opts = Slop.parse(help: true) do
+  on :g, :host=, 'Hostname'
+  on :p, :port=, 'Port'
+  on :f, :file=, 'Filename'
+  on :l, :listen, 'Listen for incoming connections'
+end
 
 %w(TERM INT).each do |signal|
   Signal.trap signal do
@@ -11,10 +15,10 @@ options.parse!
   end
 end
 
-if options.file_server?
-  server_handle(options)
-elsif options.file_client?
-  client_handle(options)
+if opts.listen? && opts.file?
+  server_handle(opts)
+elsif !opts.listen? && opts.file?
+  client_handle(opts)
 else
-  puts options.help
+  puts opts.help
 end

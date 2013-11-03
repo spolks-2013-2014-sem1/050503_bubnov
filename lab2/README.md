@@ -10,9 +10,13 @@ Requierments
 
 Ruby version >= 1.9.3
 
+###Gems
+
+Slop version ~ 3.4.6
+
 Getting Started
 ---------------
 
 To establish tcp-echo server move to the source directory and execute:
 
-    $ ruby main.rb -l 1234
+    $ ruby main.rb -p 1234

@@ -1,4 +1,4 @@
-Task #5
+Task #6
 =======
 
 TCP&UDP-on file transfer client-server application with out-of-band messaging.
@@ -20,6 +20,10 @@ Getting Started
 Start by using main to listen on a specific port, with the file which is to be transferred through UDP protocol:
 
     $ ruby main.rb -lu -p 1234 -f filename.out
+
+or through TCP protocol:
+
+    $ruby main.rb -l -p 1234 -f filename.out
 
 Option <tt>-v</tt> mean verbose: allow you get file transfer stats (available only via TCP protocol).
 Using a second machine, connect to the listening main process, with output captured into a file:
