@@ -2,7 +2,7 @@ require_relative '../../spolks_lib/network'
 
 def tcp_handle(opts)
   count = 0
-  threads = []
+  processes = []
 
   server = Network::StreamSocket.new
   server.bind(Socket.sockaddr_in(opts[:port], ''))
@@ -10,17 +10,18 @@ def tcp_handle(opts)
 
   loop do
     socket, = server.accept
+    count += 1
 
-    threads << Thread.new do
+    processes << fork do
       begin
-        file = File.open("o#{count += 1}", 'w+')
-        tsock = socket
+        server.close
+        file = File.open("o#{count}", 'w+')
         recv = 0
         has_oob = true
 
         loop do
-          urgent_arr = has_oob ? [tsock] : []
-          rs, _, us = IO.select([tsock], nil, urgent_arr, Network::TIMEOUT)
+          urgent_arr = has_oob ? [socket] : []
+          rs, _, us = IO.select([socket], nil, urgent_arr, Network::TIMEOUT)
 
           if s = us.shift
             s.recv(1, Network::MSG_OOB)
@@ -30,7 +31,7 @@ def tcp_handle(opts)
 
           if s = rs.shift
             data = s.recv(Network::CHUNK_SIZE)
-            break if data.empty?
+            exit if data.empty?
 
             recv += data.length
             has_oob = true
@@ -41,11 +42,13 @@ def tcp_handle(opts)
 
       ensure
         file.close if file
-        tsock.close if tsock
+        socket.close if socket
       end
     end
   end
 ensure
-  threads.each(&:exit)
   server.close if server
+  processes.each do |pid|
+    Process.kill('TERM', pid)
+  end
 end

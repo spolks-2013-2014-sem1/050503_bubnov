@@ -1,0 +1,14 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    ffi (1.9.3)
+    process_shared (0.1.7)
+      ffi (~> 1.0)
+    slop (3.4.6)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  process_shared (~> 0.1.7)
+  slop (~> 3.4.6)

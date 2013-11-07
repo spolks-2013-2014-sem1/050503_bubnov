@@ -36,11 +36,9 @@ def udp_handle(opts)
 
   threads.each(&:join)
 ensure
+  server.close if server
   threads.each(&:exit)
   connections.each do |key, file|
-    file.flush
-    file.close
+    file.close if file
   end
-
-  server.close if server
 end
