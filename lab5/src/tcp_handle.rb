@@ -1,9 +1,9 @@
 require_relative '../../spolks_lib/network'
 
-def tcp_server_handle(opts)
-  file = File.open(opts[:file], File::CREAT|File::TRUNC|File::WRONLY)
-  server = Network::AbstractSocket.open(:tcp)
-  server.bind(Socket.sockaddr_in(opts[:port], Network::INADDR_ANY))
+def tcp_handle(opts)
+  file = File.open(opts[:file], 'w+')
+  server = Network::StreamSocket.new
+  server.bind(Socket.sockaddr_in(opts[:port], ''))
   server.listen(3)
 
   client, = server.accept
@@ -15,7 +15,7 @@ def tcp_server_handle(opts)
     rs, _, us = IO.select([client], nil, urgent_arr, Network::TIMEOUT)
 
     us.each do |s|
-      s.recv(1, Network::StreamSocket::MSG_OOB)
+      s.recv(1, Network::MSG_OOB)
       puts recv if opts.verbose?
       read_oob = false
     end

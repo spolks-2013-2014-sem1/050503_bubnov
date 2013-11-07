@@ -4,10 +4,10 @@ MSG = '!'
 
 def client_handle(opts)
   file = File.open(opts[:file], 'r')
-  client = Network::StreamSocket.new
+  client = opts[:udp] ? Network::DatagramSocket.new : Network::StreamSocket.new
   client.connect(Socket.sockaddr_in(opts[:port], opts[:host]))
 
-  send_oob = 0
+  sent_oob = 0
   sent = true
   transferred = 0
 
@@ -18,20 +18,20 @@ def client_handle(opts)
     data, sent = file.read(Network::CHUNK_SIZE), false if sent
 
     ws.each do |s|
-      return if not data
+      return unless data
       sent = true unless s.send(data, 0) == 0
 
-      if opts.verbose?
-        send_oob += 1
-        puts transferred
+      unless opts.udp?
+        sent_oob += 1 if opts.verbose?
 
-        if send_oob % 16 == 0
-          send_oob = 0
+        if opts.verbose? && sent_oob % 64 == 0
+          sent_oob = 0
           s.send(MSG, Network::MSG_OOB)
         end
-      end
 
-      transferred += data.length if sent
+        transferred += data.length if sent
+        puts(transferred) if opts.verbose?
+      end
     end
   end
 ensure

@@ -14,5 +14,5 @@ end
 if opts.port?
   server_handle(opts)
 else
-  puts opts.help
+  puts opts
 end

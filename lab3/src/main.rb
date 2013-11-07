@@ -20,5 +20,5 @@ if opts.listen? && opts.file?
 elsif !opts.listen? && opts.file?
   client_handle(opts)
 else
-  puts opts.help
+  puts opts
 end

@@ -1,9 +1,9 @@
 require_relative '../../spolks_lib/network'
 
-def udp_server_handle(opts)
-  file = File.open(opts[:file], File::CREAT|File::TRUNC|File::WRONLY)
-  server = Network::AbstractSocket.open(:udp)
-  server.bind(Socket.sockaddr_in(opts[:port], Network::INADDR_ANY))
+def udp_handle(opts)
+  file = File.open(opts[:file], 'w+')
+  server = Network::DatagramSocket.new
+  server.bind(Socket.sockaddr_in(opts[:port], ''))
 
   loop do
     rs, _ = IO.select([server], nil, nil, Network::TIMEOUT)

@@ -1,7 +1,7 @@
 require_relative '../../spolks_lib/network'
 
 def client_handle(opts)
-  file = File.open(opts[:file], File::RDONLY)
+  file = File.open(opts[:file], 'r')
   client = Network::StreamSocket.new
   client.connect(Socket.sockaddr_in(opts[:port], opts[:host]))
   sent = true

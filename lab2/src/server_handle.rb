@@ -2,7 +2,7 @@ require_relative '../../spolks_lib/network'
 
 def server_handle(opts)
   server = Network::StreamSocket.new
-  server.bind(Socket.sockaddr_in(opts[:port], Network::INADDR_ANY))
+  server.bind(Socket.sockaddr_in(opts[:port], ''))
   server.listen(3)
 
   client, = server.accept
