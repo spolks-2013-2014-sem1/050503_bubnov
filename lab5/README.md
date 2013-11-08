@@ -12,7 +12,7 @@ Ruby version >= 1.9.3
 
 ###Gems
 
-Slop version ~ 3.4.6
+Slop version ~> 3.4.6
 
 Getting Started
 ---------------

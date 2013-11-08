@@ -3,6 +3,8 @@ require 'socket'
 module Network
   include Socket::Constants
 
+  ACK = 'ACK'
+  FIN = 'FIN'
   CHUNK_SIZE = 32768
   TIMEOUT = 10
   INADDR_ANY = ''

@@ -1,8 +1,9 @@
 require_relative '../../spolks_lib/network'
 
-def udp_handle(opts)
+def udp_server(opts)
   count = 0
   threads = []
+  mutex = Mutex.new
   connections = {}
 
   server = Network::DatagramSocket.new
@@ -12,23 +13,25 @@ def udp_handle(opts)
     threads << Thread.new do
       loop do
         rs, _ = IO.select([server], nil, nil)
-        break unless rs
 
         rs.each do |s|
           data, who = s.recvfrom(Network::CHUNK_SIZE)
-          who = who.ip_unpack
+          s.send(Network::ACK, 0, who)
+          who = who.ip_unpack.to_s
 
-          unless connections[who]
-            connections[who] = File.open("o#{count += 1}", 'w+')
+          mutex.synchronize do
+            unless connections[who]
+              connections[who] = File.open("o#{count += 1}", 'w+')
+            end
+
+            if data == Network::FIN
+              connections[who].close
+              connections.delete(who)
+              next
+            end
+
+            connections[who].write(data)
           end
-
-          if data.empty?
-            connections[who].close
-            connections.delete(who)
-            next
-          end
-
-          connections[who].write(data)
         end
       end
     end

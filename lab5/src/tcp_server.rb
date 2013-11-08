@@ -1,6 +1,6 @@
 require_relative '../../spolks_lib/network'
 
-def tcp_handle(opts)
+def tcp_server(opts)
   file = File.open(opts[:file], 'w+')
   server = Network::StreamSocket.new
   server.bind(Socket.sockaddr_in(opts[:port], ''))

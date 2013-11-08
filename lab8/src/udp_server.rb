@@ -2,7 +2,7 @@ require 'process_shared'
 require 'securerandom'
 require_relative '../../spolks_lib/network'
 
-def udp_handle(opts)
+def udp_server(opts)
   processes = []
 
   mutex = ProcessShared::Mutex.new
@@ -17,10 +17,10 @@ def udp_handle(opts)
       begin
         loop do
           rs, _ = IO.select([server], nil, nil)
-          next unless rs
 
           rs.each do |s|
             data, who = s.recvfrom(Network::CHUNK_SIZE)
+            s.send(Network::ACK, 0, who)
             who = who.ip_unpack.to_s
 
             mutex.synchronize do
@@ -34,16 +34,15 @@ def udp_handle(opts)
                   file = File.open(file_name, 'w+')
                 end
 
-                if data.empty?
+                if data == Network::FIN
                   connections.delete(who)
                   next
                 end
 
                 file = file || File.open(connections[who], 'a+')
                 file.write(data)
-
-                mem.write_object(connections)
               ensure
+                mem.write_object(connections)
                 file.close if file
               end
             end

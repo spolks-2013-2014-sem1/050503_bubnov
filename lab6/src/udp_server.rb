@@ -1,6 +1,6 @@
 require_relative '../../spolks_lib/network'
 
-def udp_handle(opts)
+def udp_server(opts)
   count = 0
   threads = {}
 
@@ -9,17 +9,15 @@ def udp_handle(opts)
 
   loop do
     rs, _ = IO.select([server], nil, nil)
-    next unless rs
 
     rs.each do |s|
       data, who = s.recvfrom(Network::CHUNK_SIZE)
+      s.send(Network::ACK, 0, who)
+
       who = who.ip_unpack
+      threads[who] = File.open("o#{count += 1}", 'w+') unless threads[who]
 
-      unless threads[who]
-        threads[who] = File.open("o#{count += 1}", 'w+')
-      end
-
-      if data.empty?
+      if data == Network::FIN
         threads[who].close
         threads.delete(who)
         next
@@ -29,9 +27,8 @@ def udp_handle(opts)
     end
   end
 ensure
-  threads.each do |who, file|
-    file.close
-  end
-
   server.close if server
+  threads.each do |who, file|
+    file.close if file
+  end
 end

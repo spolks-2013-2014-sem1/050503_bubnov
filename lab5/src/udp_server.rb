@@ -1,6 +1,6 @@
 require_relative '../../spolks_lib/network'
 
-def udp_handle(opts)
+def udp_server(opts)
   file = File.open(opts[:file], 'w+')
   server = Network::DatagramSocket.new
   server.bind(Socket.sockaddr_in(opts[:port], ''))
@@ -10,9 +10,9 @@ def udp_handle(opts)
     break unless rs
 
     rs.each do |s|
-      data = s.recv(Network::CHUNK_SIZE)
-      return if data.empty?
-
+      data, who = s.recvfrom(Network::CHUNK_SIZE)
+      s.send(Network::ACK, 0, who)
+      return if data.empty? or data == Network::FIN
       file.write(data)
     end
   end

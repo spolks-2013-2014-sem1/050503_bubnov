@@ -1,6 +1,6 @@
 require_relative '../../spolks_lib/network'
 
-def tcp_handle(opts)
+def tcp_server(opts)
   count = 0
   threads = {}
 
