@@ -21,15 +21,15 @@ def tcp_server(opts)
 
         loop do
           urgent_arr = has_oob ? [socket] : []
-          rs, _, us = IO.select([socket], nil, urgent_arr, Network::TIMEOUT)
+          rs, _, us = IO.select([socket], nil, urgent_arr)
 
-          if s = us.shift
+          us.each do |s|
             s.recv(1, Network::MSG_OOB)
             puts "#{s} #{recv}" if opts.verbose?
             has_oob = false
           end
 
-          if s = rs.shift
+          rs.each do |s|
             data = s.recv(Network::CHUNK_SIZE)
             exit if data.empty?
 
@@ -45,10 +45,12 @@ def tcp_server(opts)
         socket.close if socket
       end
     end
+
+    socket.close if socket
   end
 ensure
   server.close if server
   processes.each do |pid|
-    Process.kill('TERM', pid)
+    Process.kill('INT', pid)
   end
 end

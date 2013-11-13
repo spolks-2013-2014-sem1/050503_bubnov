@@ -8,13 +8,13 @@ Requierments
 
 ###Ruby
 
-  Ruby version >= 1.9.3
+* Ruby version >= 1.9.3
 
 ###Gems
 
-  Slop version ~> 3.4.6
-
-Process Shared version ~> 0.1.7
+* Slop version ~> 3.4.6
+* Process Shared version ~> 0.1.7
+* BinData version ~> 1.6.0
 
 Getting Started
 ---------------

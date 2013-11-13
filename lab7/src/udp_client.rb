@@ -7,6 +7,7 @@ def udp_client(opts)
 
   sent = true
   done = false
+  seek = -1
 
   loop do
     wr_arr, rd_arr = sent ? [[client], []] : [[], [client]]
@@ -15,11 +16,14 @@ def udp_client(opts)
     break unless rs or ws
     break if sent and done
 
-    data, sent = file.read(Network::CHUNK_SIZE), false if sent
+    data, sent, seek = file.read(Network::CHUNK_SIZE),
+        false, seek + 1 if sent
 
     ws.each do |s|
+      msg = Network::Packet.new(seek: seek,
+                                len: data.length, data: data) if data
       done, = data ?
-          [false, s.send(data, 0)] :
+          [false, s.send(msg.to_binary_s, 0)] :
           [true, s.send(Network::FIN, 0)]
     end
 

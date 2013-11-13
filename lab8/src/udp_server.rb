@@ -5,6 +5,7 @@ require_relative '../../spolks_lib/network'
 def udp_server(opts)
   processes = []
 
+  packet = Network::Packet.new
   mutex = ProcessShared::Mutex.new
   mem = ProcessShared::SharedMemory.new(65535)
   mem.write_object({})
@@ -19,7 +20,7 @@ def udp_server(opts)
           rs, _ = IO.select([server], nil, nil)
 
           rs.each do |s|
-            data, who = s.recvfrom(Network::CHUNK_SIZE)
+            data, who = s.recvfrom(Network::CHUNK_SIZE + 8)
             s.send(Network::ACK, 0, who)
             who = who.ip_unpack.to_s
 
@@ -34,13 +35,12 @@ def udp_server(opts)
                   file = File.open(file_name, 'w+')
                 end
 
-                if data == Network::FIN
-                  connections.delete(who)
-                  next
-                end
+                next if data == Network::FIN
+                packet.read(data)
 
-                file = file || File.open(connections[who], 'a+')
-                file.write(data)
+                file = file || File.open(connections[who], 'r+')
+                file.seek(packet.seek * Network::CHUNK_SIZE)
+                file.write(packet.data)
               ensure
                 mem.write_object(connections)
                 file.close if file
@@ -58,6 +58,6 @@ def udp_server(opts)
 ensure
   server.close if server
   processes.each do |proc|
-    Process.kill('TERM', proc)
+    Process.kill('INT', proc)
   end
 end

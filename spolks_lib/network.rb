@@ -1,4 +1,5 @@
 require 'socket'
+require 'bindata'
 
 module Network
   include Socket::Constants
@@ -7,7 +8,13 @@ module Network
   FIN = 'FIN'
   CHUNK_SIZE = 32768
   TIMEOUT = 10
-  INADDR_ANY = ''
+
+  class Packet < BinData::Record
+    endian :little
+    uint32 :len
+    uint32 :seek
+    string :data, :read_length => :len
+  end
 
   class StreamSocket < Socket
     def initialize
@@ -20,8 +27,6 @@ module Network
     def initialize
       super(Socket::AF_INET, Socket::SOCK_DGRAM, 0)
       setsockopt(Socket::SOL_SOCKET, Socket::SO_REUSEADDR, true)
-      setsockopt(Socket::SOL_SOCKET, Socket::SO_RCVBUF, CHUNK_SIZE * 4)
-      setsockopt(Socket::SOL_SOCKET, Socket::SO_SNDBUF, CHUNK_SIZE * 8)
     end
   end
 end

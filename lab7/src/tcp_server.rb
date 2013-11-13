@@ -20,15 +20,15 @@ def tcp_server(opts)
 
         loop do
           urgent_arr = has_oob ? [tsock] : []
-          rs, _, us = IO.select([tsock], nil, urgent_arr, Network::TIMEOUT)
+          rs, _, us = IO.select([tsock], nil, urgent_arr)
 
-          if s = us.shift
+          us.each do |s|
             s.recv(1, Network::MSG_OOB)
             puts "#{s} #{recv}" if opts.verbose?
             has_oob = false
           end
 
-          if s = rs.shift
+          rs.each do |s|
             data = s.recv(Network::CHUNK_SIZE)
             break if data.empty?
 
