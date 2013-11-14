@@ -1,5 +1,6 @@
 require_relative '../../spolks_lib/network'
 
+
 def tcp_server(opts)
   count = 0
   processes = []
@@ -7,6 +8,11 @@ def tcp_server(opts)
   server = Network::StreamSocket.new
   server.bind(Socket.sockaddr_in(opts[:port], ''))
   server.listen(3)
+
+  Signal.trap 'CLD' do
+    pid = Process.wait(-1)
+    processes.delete(pid)
+  end
 
   loop do
     socket, = server.accept
@@ -51,6 +57,6 @@ def tcp_server(opts)
 ensure
   server.close if server
   processes.each do |pid|
-    Process.kill('INT', pid)
+    Process.kill('KILL', pid)
   end
 end

@@ -58,6 +58,6 @@ def udp_server(opts)
 ensure
   server.close if server
   processes.each do |proc|
-    Process.kill('INT', proc)
+    Process.kill('KILL', proc)
   end
 end
