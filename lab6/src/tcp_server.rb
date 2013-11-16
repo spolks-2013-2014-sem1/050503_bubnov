@@ -1,3 +1,4 @@
+require 'fcntl'
 require_relative '../../spolks_lib/network'
 
 def tcp_server(opts)
@@ -5,14 +6,13 @@ def tcp_server(opts)
   threads = {}
 
   server = Network::StreamSocket.new
+  server.fcntl(Fcntl::F_SETFL, Fcntl::O_NONBLOCK)
   server.bind(Socket.sockaddr_in(opts[:port], ''))
   server.listen(5)
 
   loop do
-    begin
-      socket, = server.accept_nonblock
-    rescue
-    end
+    socket, = server.accept_nonblock rescue nil
+    socket, = server.accept unless socket or !threads.empty?
 
     threads[socket] = {
         file: File.open("o#{count += 1}", 'w+'),
@@ -25,16 +25,15 @@ def tcp_server(opts)
       urgent_arr.push(socket) if data[:read_oob]
     end
 
-    rs, _, us = IO.select(threads.keys, nil, urgent_arr, 0)
-    rs, us = rs || [], us || []
+    rs, _, us = IO.select(threads.keys, nil, urgent_arr, Network::TIMEOUT)
 
-    us.each do |s|
+    Array(us).each do |s|
       s.recv(1, Network::MSG_OOB)
       puts "#{s} #{threads[s][:recv]}" if opts.verbose?
       threads[s][:read_oob] = false
     end
 
-    rs.each do |s|
+    Array(rs).each do |s|
       attached = threads[s]
       data = s.recv(Network::CHUNK_SIZE)
 
@@ -52,7 +51,6 @@ def tcp_server(opts)
   end
 ensure
   server.close if server
-
   threads.each do |socket, attached|
     socket.close if socket
     attached[:file].close if attached[:file]

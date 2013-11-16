@@ -4,6 +4,7 @@ require_relative '../../spolks_lib/network'
 
 def udp_server(opts)
   processes = []
+  num = opts[:num] ? opts[:num] : 7
 
   packet = Network::Packet.new
   mutex = ProcessShared::Mutex.new
@@ -13,7 +14,7 @@ def udp_server(opts)
   server = Network::DatagramSocket.new
   server.bind(Socket.sockaddr_in(opts[:port], ''))
 
-  (0..7).each do
+  (1..num).each do
     processes << fork do
       begin
         loop do

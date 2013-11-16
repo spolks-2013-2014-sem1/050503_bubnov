@@ -27,7 +27,8 @@ def tcp_server(opts)
 
         loop do
           urgent_arr = has_oob ? [socket] : []
-          rs, _, us = IO.select([socket], nil, urgent_arr)
+          rs, _, us = IO.select([socket], nil, urgent_arr, Network::TIMEOUT)
+          break unless rs or us
 
           us.each do |s|
             s.recv(1, Network::MSG_OOB)

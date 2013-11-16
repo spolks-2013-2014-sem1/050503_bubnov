@@ -11,6 +11,7 @@ opts = Slop.parse(help: true) do
   on :v, :verbose, 'Enable verbose mode'
   on :u, :udp, 'Use UDP instead of TCP'
   on :l, :listen, 'Listen for incoming connections'
+  on :n, :num=, 'The number of threads (UDP only)', as: Integer
 end
 
 %w(TERM INT).each do |signal|

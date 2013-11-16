@@ -13,6 +13,7 @@ def server_handle(opts)
   loop do
     urgent_arr = read_oob ? [client] : []
     rs, _, us = IO.select([client], nil, urgent_arr, Network::TIMEOUT)
+    break unless rs or us
 
     us.each do |s|
       s.recv(1, Network::MSG_OOB)

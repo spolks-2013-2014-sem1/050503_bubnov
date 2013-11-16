@@ -5,12 +5,13 @@ def udp_server(opts)
   threads = []
   clients = {}
   mutex = Mutex.new
+  num = opts[:num] ? opts[:num] : 7
 
   packet = Network::Packet.new
   server = Network::DatagramSocket.new
   server.bind(Socket.sockaddr_in(opts[:port], ''))
 
-  (0..7).each do
+  (1..num).each do
     threads << Thread.new do
       loop do
         rs, _ = IO.select([server], nil, nil)
