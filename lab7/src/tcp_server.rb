@@ -53,7 +53,13 @@ def tcp_server(opts)
       end
     end
   end
+
+  mutex.synchronize do
+    threads.each(&:join)
+  end
 ensure
-  threads.each(&:join)
   server.close if server
+  mutex.synchronize do
+    threads.each(&:exit)
+  end
 end
