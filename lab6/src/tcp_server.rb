@@ -1,4 +1,3 @@
-require 'fcntl'
 require_relative '../../spolks_lib/network'
 
 def tcp_server(opts)
@@ -6,34 +5,37 @@ def tcp_server(opts)
   threads = {}
 
   server = Network::StreamSocket.new
-  server.fcntl(Fcntl::F_SETFL, Fcntl::O_NONBLOCK)
   server.bind(Socket.sockaddr_in(opts[:port], ''))
   server.listen(5)
 
   loop do
-    socket, = server.accept_nonblock rescue nil
-    socket, = server.accept unless socket or !threads.empty?
-
-    threads[socket] = {
-        file: File.open("o#{count += 1}", 'w+'),
-        recv: 0,
-        read_oob: true,
-    } if socket
-
     urgent_arr = []
     threads.each do |socket, data|
       urgent_arr.push(socket) if data[:read_oob]
     end
 
-    rs, _, us = IO.select(threads.keys, nil, urgent_arr, Network::TIMEOUT)
+    rs, _, us = IO.select(threads.keys + [server],
+                          nil, urgent_arr, Network::TIMEOUT)
 
-    Array(us).each do |s|
+    break unless rs or us
+
+    if rs.include?(server)
+      rs.delete(server)
+      socket, = server.accept
+      threads[socket] = {
+          file: File.open("o#{count += 1}", 'w+'),
+          recv: 0,
+          read_oob: true,
+      }
+    end
+
+    us.each do |s|
       s.recv(1, Network::MSG_OOB)
       puts "#{s} #{threads[s][:recv]}" if opts.verbose?
       threads[s][:read_oob] = false
     end
 
-    Array(rs).each do |s|
+    rs.each do |s|
       attached = threads[s]
       data = s.recv(Network::CHUNK_SIZE)
 

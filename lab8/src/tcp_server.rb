@@ -15,6 +15,9 @@ def tcp_server(opts)
   end
 
   loop do
+    rs, _ = IO.select([server], nil, nil, Network::TIMEOUT)
+    break unless rs
+
     socket, = server.accept
     count += 1
 

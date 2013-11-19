@@ -4,11 +4,15 @@ def tcp_server(opts)
   count = 0
   threads = []
 
+  mutex = Mutex.new
   server = Network::StreamSocket.new
   server.bind(Socket.sockaddr_in(opts[:port], ''))
   server.listen(3)
 
   loop do
+    rs, _ = IO.select([server], nil, nil, Network::TIMEOUT)
+    break unless rs
+
     socket, = server.accept
 
     threads << Thread.new do
@@ -31,7 +35,7 @@ def tcp_server(opts)
 
           rs.each do |s|
             data = s.recv(Network::CHUNK_SIZE)
-            break if data.empty?
+            return if data.empty?
 
             recv += data.length
             has_oob = true
@@ -43,10 +47,13 @@ def tcp_server(opts)
       ensure
         file.close if file
         tsock.close if tsock
+        mutex.synchronize do
+          threads.delete(Thread.current)
+        end
       end
     end
   end
 ensure
-  threads.each(&:exit)
+  threads.each(&:join)
   server.close if server
 end

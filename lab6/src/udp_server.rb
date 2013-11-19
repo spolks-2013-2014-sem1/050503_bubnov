@@ -8,7 +8,8 @@ def udp_server(opts)
   server.bind(Socket.sockaddr_in(opts[:port], ''))
 
   loop do
-    rs, _ = IO.select([server], nil, nil)
+    rs, _ = IO.select([server], nil, nil, Network::TIMEOUT)
+    break unless rs
 
     rs.each do |s|
       data, who = s.recvfrom(Network::CHUNK_SIZE)

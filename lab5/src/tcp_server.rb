@@ -6,6 +6,9 @@ def tcp_server(opts)
   server.bind(Socket.sockaddr_in(opts[:port], ''))
   server.listen(3)
 
+  rs, _ = IO.select([server], nil, nil, Network::TIMEOUT)
+  return unless rs
+
   client, = server.accept
   recv = 0
   read_oob = true
