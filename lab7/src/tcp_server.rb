@@ -1,7 +1,7 @@
+require 'securerandom'
 require_relative '../../spolks_lib/network'
 
 def tcp_server(opts)
-  count = 0
   threads = []
 
   mutex = Mutex.new
@@ -17,7 +17,7 @@ def tcp_server(opts)
 
     threads << Thread.new do
       begin
-        file = File.open("o#{count += 1}", 'w+')
+        file = File.open("#{SecureRandom.hex}.ld", 'w+')
         tsock = socket
         recv = 0
         has_oob = true

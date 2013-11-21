@@ -1,8 +1,8 @@
+require 'securerandom'
 require_relative '../../spolks_lib/network'
 
 
 def tcp_server(opts)
-  count = 0
   processes = []
 
   server = Network::StreamSocket.new
@@ -19,12 +19,11 @@ def tcp_server(opts)
     break unless rs
 
     socket, = server.accept
-    count += 1
 
     processes << fork do
       begin
         server.close
-        file = File.open("o#{count}", 'w+')
+        file = File.open("#{SecureRandom.hex}.ld", 'w+')
         recv = 0
         has_oob = true
 

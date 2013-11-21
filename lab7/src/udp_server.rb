@@ -1,7 +1,6 @@
 require_relative '../../spolks_lib/network'
 
 def udp_server(opts)
-  count = 0
   threads = []
   clients = {}
   mutex = Mutex.new
@@ -24,7 +23,7 @@ def udp_server(opts)
 
           mutex.synchronize do
             unless clients[who]
-              clients[who] = File.open("o#{count += 1}", 'w+')
+              clients[who] = File.open("#{SecureRandom.hex}.ld", 'w+')
             end
 
             if data == Network::FIN

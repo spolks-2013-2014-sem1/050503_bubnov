@@ -1,7 +1,7 @@
+require 'securerandom'
 require_relative '../../spolks_lib/network'
 
 def tcp_server(opts)
-  count = 0
   threads = {}
 
   server = Network::StreamSocket.new
@@ -23,7 +23,7 @@ def tcp_server(opts)
       rs.delete(server)
       socket, = server.accept
       threads[socket] = {
-          file: File.open("o#{count += 1}", 'w+'),
+          file: File.open("#{SecureRandom.hex}.ld", 'w+'),
           recv: 0,
           read_oob: true,
       }
