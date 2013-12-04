@@ -2,7 +2,7 @@ require 'securerandom'
 require_relative '../../spolks_lib/network'
 
 def udp_server(opts)
-  threads = {}
+  connections = {}
 
   server = Network::DatagramSocket.new
   server.bind(Socket.sockaddr_in(opts[:port], ''))
@@ -16,20 +16,20 @@ def udp_server(opts)
       s.send(Network::ACK, 0, who)
 
       who = who.ip_unpack
-      threads[who] = File.open("#{SecureRandom.hex}.ld", 'w+') unless threads[who]
+      connections[who] = File.open("#{SecureRandom.hex}.ld", 'w+') unless connections[who]
 
       if data == Network::FIN
-        threads[who].close
-        threads.delete(who)
+        connections[who].close
+        connections.delete(who)
         next
       end
 
-      threads[who].write(data)
+      connections[who].write(data)
     end
   end
 ensure
   server.close if server
-  threads.each do |who, file|
+  connections.each do |who, file|
     file.close if file
   end
 end

@@ -2,7 +2,7 @@ require 'securerandom'
 require_relative '../../spolks_lib/network'
 
 def tcp_server(opts)
-  threads = {}
+  connections = {}
 
   server = Network::StreamSocket.new
   server.bind(Socket.sockaddr_in(opts[:port], ''))
@@ -10,11 +10,11 @@ def tcp_server(opts)
 
   loop do
     urgent_arr = []
-    threads.each do |socket, data|
+    connections.each do |socket, data|
       urgent_arr.push(socket) if data[:read_oob]
     end
 
-    rs, _, us = IO.select(threads.keys + [server],
+    rs, _, us = IO.select(connections.keys + [server],
                           nil, urgent_arr, Network::TIMEOUT)
 
     break unless rs or us
@@ -22,7 +22,7 @@ def tcp_server(opts)
     if rs.include?(server)
       rs.delete(server)
       socket, = server.accept
-      threads[socket] = {
+      connections[socket] = {
           file: File.open("#{SecureRandom.hex}.ld", 'w+'),
           recv: 0,
           read_oob: true,
@@ -31,18 +31,18 @@ def tcp_server(opts)
 
     us.each do |s|
       s.recv(1, Network::MSG_OOB)
-      puts "#{s} #{threads[s][:recv]}" if opts.verbose?
-      threads[s][:read_oob] = false
+      puts "#{s} #{connections[s][:recv]}" if opts.verbose?
+      connections[s][:read_oob] = false
     end
 
     rs.each do |s|
-      attached = threads[s]
+      attached = connections[s]
       data = s.recv(Network::CHUNK_SIZE)
 
       if data.empty?
         s.close
         attached[:file].close
-        threads.delete(s)
+        connections.delete(s)
         next
       end
 
@@ -53,7 +53,7 @@ def tcp_server(opts)
   end
 ensure
   server.close if server
-  threads.each do |socket, attached|
+  connections.each do |socket, attached|
     socket.close if socket
     attached[:file].close if attached[:file]
   end

@@ -17,7 +17,8 @@ def udp_server(opts)
         break unless rs
 
         rs.each do |s|
-          data, who = s.recvfrom(Network::CHUNK_SIZE + 8)
+          data, who = s.recvfrom_nonblock(Network::CHUNK_SIZE + 12) rescue nil
+          next unless who
           s.send(Network::ACK, 0, who)
           who = who.ip_unpack.to_s
 
@@ -41,6 +42,7 @@ def udp_server(opts)
     end
   end
 
+  threads.each(&:run)
   threads.each(&:join)
 ensure
   server.close if server

@@ -59,7 +59,4 @@ def tcp_server(opts)
   end
 ensure
   server.close if server
-  processes.each do |pid|
-    Process.kill('KILL', pid)
-  end
 end

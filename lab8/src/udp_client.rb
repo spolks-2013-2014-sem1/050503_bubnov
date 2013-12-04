@@ -5,6 +5,9 @@ def udp_client(opts)
   client = Network::DatagramSocket.new
   client.connect(Socket.sockaddr_in(opts[:port], opts[:host]))
 
+  chunks = file.size / Network::CHUNK_SIZE
+  chunks += 1 if file.size % Network::CHUNK_SIZE
+
   sent = true
   done = false
   seek = -1
@@ -20,7 +23,7 @@ def udp_client(opts)
         false, seek + 1 if sent
 
     ws.each do |s|
-      msg = Network::Packet.new(seek: seek,
+      msg = Network::Packet.new(seek: seek, chunks: chunks,
                                 len: data.length, data: data) if data
       done, = data ?
           [false, s.send(msg.to_binary_s, 0)] :

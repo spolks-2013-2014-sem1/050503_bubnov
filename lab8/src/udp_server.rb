@@ -2,6 +2,7 @@ require 'process_shared'
 require 'securerandom'
 require_relative '../../spolks_lib/network'
 
+
 def udp_server(opts)
   processes = []
   num = opts[:num] ? opts[:num] : 7
@@ -22,9 +23,14 @@ def udp_server(opts)
           break unless rs
 
           rs.each do |s|
-            data, who = s.recvfrom(Network::CHUNK_SIZE + 8)
+            data, who = s.recvfrom_nonblock(Network::CHUNK_SIZE + 12) rescue nil
+            next unless who
+
             s.send(Network::ACK, 0, who)
             who = who.ip_unpack.to_s
+
+            next if data == Network::FIN
+            packet.read(data)
 
             mutex.synchronize do
               begin
@@ -33,14 +39,18 @@ def udp_server(opts)
 
                 unless connections[who]
                   file_name = "#{SecureRandom.hex}.ld"
-                  connections[who] = file_name
+                  connections[who] = { chunks: packet.chunks.to_s, file: file_name }
                   file = File.open(file_name, 'w+')
                 end
 
-                next if data == Network::FIN
-                packet.read(data)
+                chunks = Integer(connections[who][:chunks]) - 1
+                connections[who][:chunks] = chunks.to_s
+                if chunks == 0
+                  connections.delete(who)
+                  next
+                end
 
-                file = file || File.open(connections[who], 'r+')
+                file = file || File.open(connections[who][:file], 'r+')
                 file.seek(packet.seek * Network::CHUNK_SIZE)
                 file.write(packet.data)
               ensure
@@ -59,7 +69,4 @@ def udp_server(opts)
   Process.waitall
 ensure
   server.close if server
-  processes.each do |proc|
-    Process.kill('KILL', proc)
-  end
 end
