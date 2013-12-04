@@ -29,6 +29,7 @@ def tcp_client(opts)
       if opts.verbose? && sent_oob % 64 == 0
         sent_oob = 0
         s.send(MSG, Network::MSG_OOB)
+        sleep 1
       end
     end
   end

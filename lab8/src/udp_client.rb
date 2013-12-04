@@ -6,7 +6,7 @@ def udp_client(opts)
   client.connect(Socket.sockaddr_in(opts[:port], opts[:host]))
 
   chunks = file.size / Network::CHUNK_SIZE
-  chunks += 1 if file.size % Network::CHUNK_SIZE
+  chunks += 1 unless file.size % Network::CHUNK_SIZE == 0
 
   sent = true
   done = false

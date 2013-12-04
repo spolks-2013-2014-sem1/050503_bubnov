@@ -19,23 +19,27 @@ def udp_server(opts)
         rs.each do |s|
           data, who = s.recvfrom_nonblock(Network::CHUNK_SIZE + 12) rescue nil
           next unless who
+
           s.send(Network::ACK, 0, who)
           who = who.ip_unpack.to_s
+          next if data == Network::FIN
 
           mutex.synchronize do
+            packet.read(data)
             unless clients[who]
-              clients[who] = File.open("#{SecureRandom.hex}.ld", 'w+')
+              clients[who] = { file: File.open("#{SecureRandom.hex}.ld", 'w+'),
+                               chunks: packet.chunks }
             end
 
-            if data == Network::FIN
-              clients[who].close
+            clients[who][:file].seek(packet.seek * Network::CHUNK_SIZE)
+            clients[who][:file].write(packet.data)
+            clients[who][:chunks] -= 1
+
+            if clients[who][:chunks] == 0
+              clients[who][:file].close
               clients.delete(who)
               next
             end
-
-            packet.read(data)
-            clients[who].seek(packet.seek * Network::CHUNK_SIZE)
-            clients[who].write(packet.data)
           end
         end
       end
@@ -47,7 +51,8 @@ def udp_server(opts)
 ensure
   server.close if server
   threads.each(&:exit)
-  clients.each do |key, file|
-    file.close if file
+  p clients
+  clients.each do |key, hash|
+    hash[:file].close if file
   end
 end

@@ -28,14 +28,13 @@ def udp_server(opts)
 
             s.send(Network::ACK, 0, who)
             who = who.ip_unpack.to_s
-
             next if data == Network::FIN
-            packet.read(data)
 
             mutex.synchronize do
               begin
                 file = nil
                 connections = mem.read_object
+                packet.read(data)
 
                 unless connections[who]
                   file_name = "#{SecureRandom.hex}.ld"
@@ -43,16 +42,16 @@ def udp_server(opts)
                   file = File.open(file_name, 'w+')
                 end
 
+                file = file || File.open(connections[who][:file], 'r+')
+                file.seek(packet.seek * Network::CHUNK_SIZE)
+                file.write(packet.data)
+
                 chunks = Integer(connections[who][:chunks]) - 1
                 connections[who][:chunks] = chunks.to_s
                 if chunks == 0
                   connections.delete(who)
                   next
                 end
-
-                file = file || File.open(connections[who][:file], 'r+')
-                file.seek(packet.seek * Network::CHUNK_SIZE)
-                file.write(packet.data)
               ensure
                 mem.write_object(connections)
                 file.close if file
