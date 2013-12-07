@@ -1,33 +1,26 @@
 require_relative '../../spolks_lib/network'
 
 def udp_client(opts)
-  file = File.open(opts[:file], 'r')
-  client = Network::DatagramSocket.new
-  client.connect(Socket.sockaddr_in(opts[:port], opts[:host]))
-
   sent = true
-  done = false
 
-  loop do
-    wr_arr, rd_arr = sent ? [[client], []] : [[], [client]]
-    rs, ws, = IO.select(rd_arr, wr_arr, nil, Network::TIMEOUT)
+  Network::DatagramSocket.open opts do |socket|
+    XIO::XFile.read opts do |file, chunk|
+      2.times do
+        write, read = sent ? [true, false] : [false, true]
+        rs, ws, = socket.select rs: read, ws: write
+        break unless rs or ws
 
-    break unless rs or ws
-    break if sent and done
+        if ws
+          socket.send chunk
+          sent = false
+        end
 
-    data, sent = file.read(Network::CHUNK_SIZE), false if sent
-
-    ws.each do |s|
-      done, = data ?
-          [false, s.send(data, 0)] :
-          [true, s.send(Network::FIN, 0)]
+        if rs
+          msg, = socket.recv(3)
+          sent = true if msg == Network::ACK
+        end
+      end
     end
-
-    rs.each do |s|
-      sent = true if s.recv(3) == Network::ACK
-    end
+    socket.send Network::FIN
   end
-ensure
-  file.close if file
-  client.close if client
 end

@@ -1,8 +1,9 @@
 require 'slop'
 require_relative 'tcp_client'
-require_relative 'udp_client'
 require_relative 'tcp_server'
+require_relative 'udp_client'
 require_relative 'udp_server'
+require_relative '../../spolks_lib/file'
 
 opts = Slop.parse(help: true) do
   on :g, :host=, 'Hostname'

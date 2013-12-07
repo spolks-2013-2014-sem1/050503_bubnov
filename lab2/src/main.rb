@@ -1,5 +1,6 @@
 require 'slop'
-require_relative 'server_handle'
+require_relative '../../spolks_lib/stream_socket'
+require_relative '../../spolks_lib/stream_server'
 
 opts = Slop.parse(help: true) do
   on :p, :port=, 'Port'
@@ -12,7 +13,18 @@ end
 end
 
 if opts.port?
-  server_handle(opts)
+  Network::StreamServer.listen opts do |server|
+    break unless server.select rs: true
+    client, = server.accept
+
+    loop do
+      rs, = client.select rs: true
+      break unless rs
+      chunk = client.recv
+      break if chunk.empty?
+      client.send chunk
+    end
+  end
 else
   puts opts
 end

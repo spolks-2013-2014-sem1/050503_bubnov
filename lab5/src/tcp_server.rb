@@ -1,41 +1,28 @@
 require_relative '../../spolks_lib/network'
+require_relative '../../spolks_lib/file'
 
 def tcp_server(opts)
-  file = File.open(opts[:file], 'w+')
-  server = Network::StreamSocket.new
-  server.bind(Socket.sockaddr_in(opts[:port], ''))
-  server.listen(3)
+  Network::StreamServer.listen opts do |server|
+    rs, = server.select rs: true
+    break unless rs
+    client, = server.accept
 
-  rs, _ = IO.select([server], nil, nil, Network::TIMEOUT)
-  return unless rs
+    XIO::XFile.write opts do |file|
+      loop do
+        rs, _, es = client.select rs: true, es: true
+        break unless rs or es
 
-  client, = server.accept
-  recv = 0
-  read_oob = true
+        if es
+          client.recv_oob
+          puts file.size if opts.verbose?
+        end
 
-  loop do
-    urgent_arr = read_oob ? [client] : []
-    rs, _, us = IO.select([client], nil, urgent_arr, Network::TIMEOUT)
-    break unless rs or us
-
-    us.each do |s|
-      s.recv(1, Network::MSG_OOB)
-      puts recv if opts.verbose?
-      read_oob = false
-    end
-
-    rs.each do |s|
-      data = s.recv(Network::CHUNK_SIZE)
-
-      return if data.empty?
-      recv += data.length
-      read_oob = true
-
-      file.write(data)
+        if rs
+          chunk = client.recv
+          break if chunk.empty?
+          file.write chunk
+        end
+      end
     end
   end
-ensure
-  file.close if file
-  server.close if server
-  client.close if client
 end

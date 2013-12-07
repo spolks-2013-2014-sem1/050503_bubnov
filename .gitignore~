@@ -12,6 +12,3 @@
 .idea/*
 *.iml
 *.sh
-
-# Ignore test files
-*.mp3

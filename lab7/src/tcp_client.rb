@@ -1,4 +1,4 @@
-require_relative '../../spolks_lib/network'
+require_relative '../../spolks_lib/stream_socket'
 
 MSG = '!'
 

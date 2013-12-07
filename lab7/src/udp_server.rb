@@ -1,4 +1,4 @@
-require_relative '../../spolks_lib/network'
+require_relative '../../spolks_lib/stream_socket'
 
 def udp_server(opts)
   threads = []
