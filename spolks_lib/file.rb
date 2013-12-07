@@ -4,7 +4,7 @@ module XIO
   end
 
   class XFile
-    def initialize(filename, mode)
+    def initialize(filename, mode='w+')
       @file = File.open(filename, mode)
     end
 
@@ -21,10 +21,24 @@ module XIO
     end
 
     def self.write(what, &block)
-      file = XFile.new(what[:file], 'w+')
+      file = XFile.new(what[:file])
       yield file
     ensure
       file.close if file
+    end
+
+    def chunks
+      chunks = size / Constants::CHUNK_SIZE
+      chunks += 1 unless size % Constants::CHUNK_SIZE == 0
+      chunks
+    end
+
+    def seek(pos)
+      @file.seek pos
+    end
+
+    def seek_chunk(number)
+      @file.seek number * Constants::CHUNK_SIZE
     end
 
     def read

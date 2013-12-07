@@ -1,62 +1,43 @@
 require 'securerandom'
-require_relative '../../spolks_lib/stream_socket'
 
+require_relative '../../spolks_lib/network'
+require_relative '../../spolks_lib/file'
 
 def tcp_server(opts)
   processes = []
-
-  server = Network::StreamSocket.new
-  server.bind(Socket.sockaddr_in(opts[:port], ''))
-  server.listen(3)
 
   Signal.trap 'CLD' do
     pid = Process.wait(-1)
     processes.delete(pid)
   end
 
-  loop do
-    rs, _ = IO.select([server], nil, nil, Network::TIMEOUT)
-    break unless rs
+  Network::StreamServer.listen opts do |server|
+    loop do
+      rs, = server.select rs: true
+      break unless rs
+      client, = server.accept
 
-    socket, = server.accept
-
-    processes << fork do
-      begin
+      processes << fork do
         server.close
-        file = File.open("#{SecureRandom.hex}.ld", 'w+')
-        recv = 0
-        has_oob = true
 
-        loop do
-          urgent_arr = has_oob ? [socket] : []
-          rs, _, us = IO.select([socket], nil, urgent_arr, Network::TIMEOUT)
-          break unless rs or us
+        XIO::XFile.write file: "#{SecureRandom.hex}.ld" do |file|
+          loop do
+            rs, _, es = client.select rs: true, es: true
+            break unless rs or es
 
-          us.each do |s|
-            s.recv(1, Network::MSG_OOB)
-            puts "#{s} #{recv}" if opts.verbose?
-            has_oob = false
-          end
+            if es
+              client.recv_oob
+              puts file.size if opts.verbose?
+            end
 
-          rs.each do |s|
-            data = s.recv(Network::CHUNK_SIZE)
-            exit if data.empty?
-
-            recv += data.length
-            has_oob = true
-
-            file.write(data)
+            if rs
+              chunk = client.recv
+              break if chunk.empty?
+              file.write chunk
+            end
           end
         end
-
-      ensure
-        file.close if file
-        socket.close if socket
       end
     end
-
-    socket.close if socket
   end
-ensure
-  server.close if server
 end

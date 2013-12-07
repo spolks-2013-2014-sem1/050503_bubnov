@@ -1,6 +1,5 @@
 require 'slop'
-require_relative '../../spolks_lib/stream_socket'
-require_relative '../../spolks_lib/stream_server'
+require_relative '../../spolks_lib/network'
 
 opts = Slop.parse(help: true) do
   on :p, :port=, 'Port'

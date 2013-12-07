@@ -1,65 +1,45 @@
 require 'securerandom'
-require_relative '../../spolks_lib/stream_socket'
+
+require_relative '../../spolks_lib/network'
+require_relative '../../spolks_lib/file'
 
 def tcp_server(opts)
   threads = []
-
   mutex = Mutex.new
-  server = Network::StreamSocket.new
-  server.bind(Socket.sockaddr_in(opts[:port], ''))
-  server.listen(3)
 
-  loop do
-    rs, _ = IO.select([server], nil, nil, Network::TIMEOUT)
-    break unless rs
+  Network::StreamServer.listen opts do |server|
+    loop do
+      rs, = server.select rs: true
+      break unless rs
+      client, = server.accept
 
-    socket, = server.accept
+      threads << Thread.new do
+        begin
+          sock = client
+          XIO::XFile.write file: "#{SecureRandom.hex}.ld" do |file|
+            loop do
+              rs, _, es = sock.select rs: true, es: true
+              break unless rs or es
 
-    threads << Thread.new do
-      begin
-        file = File.open("#{SecureRandom.hex}.ld", 'w+')
-        tsock = socket
-        recv = 0
-        has_oob = true
+              if es
+                sock.recv_oob
+                puts file.size if opts.verbose?
+              end
 
-        loop do
-          urgent_arr = has_oob ? [tsock] : []
-          rs, _, us = IO.select([tsock], nil, urgent_arr, Network::TIMEOUT)
-          break unless rs or us
-
-          us.each do |s|
-            s.recv(1, Network::MSG_OOB)
-            puts "#{s} #{recv}" if opts.verbose?
-            has_oob = false
+              if rs
+                chunk = sock.recv
+                break if chunk.empty?
+                file.write chunk
+              end
+            end
           end
-
-          rs.each do |s|
-            data = s.recv(Network::CHUNK_SIZE)
-            return if data.empty?
-
-            recv += data.length
-            has_oob = true
-
-            file.write(data)
+        ensure
+          sock.close if sock
+          mutex.synchronize do
+            threads.delete(Thread.current)
           end
-        end
-
-      ensure
-        file.close if file
-        tsock.close if tsock
-        mutex.synchronize do
-          threads.delete(Thread.current)
         end
       end
     end
-  end
-
-  mutex.synchronize do
-    threads.each(&:join)
-  end
-ensure
-  server.close if server
-  mutex.synchronize do
-    threads.each(&:exit)
   end
 end

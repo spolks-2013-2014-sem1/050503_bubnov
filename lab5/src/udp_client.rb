@@ -1,4 +1,5 @@
 require_relative '../../spolks_lib/network'
+require_relative '../../spolks_lib/file'
 
 def udp_client(opts)
   sent = true

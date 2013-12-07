@@ -1,60 +1,46 @@
 require 'securerandom'
-require_relative '../../spolks_lib/stream_socket'
+
+require_relative '../../spolks_lib/network'
+require_relative '../../spolks_lib/file'
 
 def tcp_server(opts)
   connections = {}
 
-  server = Network::StreamSocket.new
-  server.bind(Socket.sockaddr_in(opts[:port], ''))
-  server.listen(5)
+  Network::StreamServer.listen opts do |server|
+    loop do
+      rs, _, es = Network::StreamSocket.select(connections.keys + [server],
+                                               nil, connections.keys)
+      break unless rs or es
 
-  loop do
-    urgent_arr = []
-    connections.each do |socket, data|
-      urgent_arr.push(socket) if data[:read_oob]
-    end
-
-    rs, _, us = IO.select(connections.keys + [server],
-                          nil, urgent_arr, Network::TIMEOUT)
-
-    break unless rs or us
-
-    if rs.include?(server)
-      rs.delete(server)
-      socket, = server.accept
-      connections[socket] = {
-          file: File.open("#{SecureRandom.hex}.ld", 'w+'),
-          recv: 0,
-          read_oob: true,
-      }
-    end
-
-    us.each do |s|
-      s.recv(1, Network::MSG_OOB)
-      puts "#{s} #{connections[s][:recv]}" if opts.verbose?
-      connections[s][:read_oob] = false
-    end
-
-    rs.each do |s|
-      attached = connections[s]
-      data = s.recv(Network::CHUNK_SIZE)
-
-      if data.empty?
-        s.close
-        attached[:file].close
-        connections.delete(s)
-        next
+      if rs.include? server
+        rs.delete(server)
+        s, = server.accept
+        connections[s] = XIO::XFile.new "#{SecureRandom.hex}.ld"
       end
 
-      attached[:recv] += data.length
-      attached[:read_oob] = true
-      attached[:file].write(data)
+      es.each do |s|
+        s.recv_oob
+        file = connections[s]
+        puts file.size if opts.verbose?
+      end
+
+      rs.each do |s|
+        chunk = s.recv
+        file = connections[s]
+        file.write chunk
+
+        if chunk.empty?
+          s.close
+          file.close
+          connections.delete(s)
+        end
+      end
     end
   end
+
 ensure
-  server.close if server
-  connections.each do |socket, attached|
-    socket.close if socket
-    attached[:file].close if attached[:file]
+  connections.each do |sock, file|
+    sock.close if sock
+    file.close if file
   end
 end

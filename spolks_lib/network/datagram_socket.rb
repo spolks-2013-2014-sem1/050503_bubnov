@@ -1,73 +1,66 @@
 require 'socket'
+require_relative 'abstract_socket'
 
 module Network
-  module Constants
-    include Socket::Constants
-
-    ACK = 'ACK'
-    FIN = 'FIN'
-    CHUNK_SIZE = 32768
-    TIMEOUT = 10
-  end
-
-  class StreamSocket
+  class DatagramSocket < AbstractSocket
     def initialize(sock_or_addr={})
       if sock_or_addr.instance_of?(Socket)
         @socket = sock_or_addr
       else
-        @socket = Socket.new(Constants::AF_INET, Constants::SOCK_STREAM, 0)
+        @socket = Socket.new(Constants::AF_INET, Constants::SOCK_DGRAM, 0)
         @socket.setsockopt(Constants::SOL_SOCKET, Constants::SO_REUSEADDR, true)
         @sockaddr = Socket.sockaddr_in(sock_or_addr[:port], sock_or_addr[:host])
       end
     end
 
     def self.open(addrinfo, &block)
-      socket = StreamSocket.new(addrinfo)
+      socket = DatagramSocket.new(addrinfo)
       socket.connect
       yield socket
     ensure
       socket.close if socket
     end
 
-    def accept
-      socket, sockaddr = @socket.accept
-      [StreamSocket.new(socket), sockaddr]
+    def self.listen(addrinfo, &block)
+      socket = DatagramSocket.new(port: addrinfo[:port], host: '')
+      socket.bind
+      yield socket
+    ensure
+      socket.close if socket
     end
 
-    def listen(count=3)
-      @socket.listen(count)
-    end
-
-    def connect
-      @socket.connect(@sockaddr)
+    def fd
+      @socket
     end
 
     def bind
       @socket.bind(@sockaddr)
     end
 
-    def send(string)
-      @socket.send(string, 0)
+    def connect
+      @socket.connect(@sockaddr)
     end
 
-    def send_oob
-      @socket.send('!', Socket::MSG_OOB)
-      sleep 1
+    def send(string, who=nil)
+      if who
+        @socket.send(string, 0, who)
+      else
+        @socket.send(string, 0)
+      end
     end
 
     def recv(size=Constants::CHUNK_SIZE)
-      @socket.recv(size)
+      @socket.recvfrom(size)
     end
 
-    def recv_oob
-      @socket.recv(1, Socket::MSG_OOB)
+    def recv_nonblock(size=Constants::PACKET_SIZE)
+      @socket.recvfrom_nonblock(size)
     end
 
     def select(descr={}, timeout=Constants::TIMEOUT)
       read_array = descr[:rs] ? [@socket] : []
       write_array = descr[:ws] ? [@socket] : []
       error_array = descr[:es] ? [@socket] : []
-
 
       rs, ws, es = IO.select(read_array, write_array, error_array, timeout)
       [rs ? rs.any? : false,

@@ -1,35 +1,30 @@
 require 'securerandom'
-require_relative '../../spolks_lib/stream_socket'
+
+require_relative '../../spolks_lib/network'
+require_relative '../../spolks_lib/file'
 
 def udp_server(opts)
   connections = {}
 
-  server = Network::DatagramSocket.new
-  server.bind(Socket.sockaddr_in(opts[:port], ''))
+  Network::DatagramSocket.listen opts do |socket|
+    loop do
+      rs, = socket.select rs: true
+      break unless rs
 
-  loop do
-    rs, _ = IO.select([server], nil, nil, Network::TIMEOUT)
-    break unless rs
-
-    rs.each do |s|
-      data, who = s.recvfrom(Network::CHUNK_SIZE)
-      s.send(Network::ACK, 0, who)
+      data, who = socket.recv
+      socket.send Network::ACK, who
 
       who = who.ip_unpack
-      connections[who] = File.open("#{SecureRandom.hex}.ld", 'w+') unless connections[who]
+      connections[who] = XIO::XFile.new "#{SecureRandom.hex}.ld" unless connections[who]
+      file = connections[who]
 
       if data == Network::FIN
-        connections[who].close
+        file.close
         connections.delete(who)
         next
       end
 
-      connections[who].write(data)
+      file.write data
     end
-  end
-ensure
-  server.close if server
-  connections.each do |who, file|
-    file.close if file
   end
 end

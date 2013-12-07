@@ -13,6 +13,10 @@ module Network
       socket.close if socket
     end
 
+    def fd
+      @socket.fd
+    end
+
     def select(timeout=Constants::TIMEOUT)
       @socket.select(timeout)
     end
